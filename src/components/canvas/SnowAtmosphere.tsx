@@ -4,16 +4,14 @@ import * as THREE from 'three';
 import { useTourStore } from '../../store/useTourStore';
 
 export const SnowAtmosphere: React.FC = () => {
+  // Unconditionally execute all hooks at the top of the component
   const weatherMode = useTourStore((state) => state.weatherLightingMode);
   const isWinter = weatherMode === 'SNOWY_WINTER';
-
-  // If not winter, don't render snow at all
-  if (!isWinter) return null;
 
   const count = 180;
   const meshRef = useRef<THREE.Points>(null);
 
-  // Generate soft, round, natural circular snowflake texture (NO square glitch pixels)
+  // Soft, round, natural circular snowflake texture (NO square glitch pixels)
   const snowflakeTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
@@ -44,7 +42,7 @@ export const SnowAtmosphere: React.FC = () => {
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 40;
       pos[i * 3 + 1] = Math.random() * 25 - 5;
-      // Keep z away from camera lens (camera is at z = 18) to avoid huge close-up blobs
+      // Position safely away from camera lens (camera is at z = 18) to avoid close-up blobs
       pos[i * 3 + 2] = -5 + Math.random() * 12;
 
       vel[i * 3] = (Math.random() - 0.5) * 0.02;
@@ -56,7 +54,9 @@ export const SnowAtmosphere: React.FC = () => {
   }, []);
 
   useFrame(() => {
-    if (!meshRef.current) return;
+    // Only animate snowflake positions when winter mode is active
+    if (!isWinter || !meshRef.current) return;
+
     const posAttr = meshRef.current.geometry.attributes.position as THREE.BufferAttribute;
     const array = posAttr.array as Float32Array;
 
@@ -76,7 +76,7 @@ export const SnowAtmosphere: React.FC = () => {
   });
 
   return (
-    <points ref={meshRef}>
+    <points ref={meshRef} visible={isWinter}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
@@ -88,7 +88,7 @@ export const SnowAtmosphere: React.FC = () => {
         size={0.12}
         color="#ffffff"
         transparent
-        opacity={0.65}
+        opacity={isWinter ? 0.65 : 0.0}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         sizeAttenuation
