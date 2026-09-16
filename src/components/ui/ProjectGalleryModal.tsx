@@ -1,321 +1,448 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTourStore } from '../../store/useTourStore';
 import {
   X,
-  Layers,
-  Image as ImageIcon,
-  Compass,
-  Building,
-  Check,
-  ZoomIn,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Sparkles,
+  MessageCircle,
+  Building2,
+  Mountain,
+  Home,
+  CheckCircle2,
 } from 'lucide-react';
+
+interface GalleryItem {
+  id: string;
+  src: string;
+  category: 'EXTERIOR' | 'VIEWS' | 'SUITES';
+  title: string;
+  subtitle: string;
+  tag: string;
+  featured?: boolean;
+}
+
+const GALLERY_IMAGES: GalleryItem[] = [
+  {
+    id: 'img-1',
+    src: '/gallery/gallery-ext-twilight.jpg',
+    category: 'EXTERIOR',
+    title: 'Twilight Alpine Facade & Illuminated Balconies',
+    subtitle: 'French-Chalet classical stone architecture with warm amber suite glows under Himalayan twilight skies.',
+    tag: 'Official Render • 7,906 FT',
+    featured: true,
+  },
+  {
+    id: 'img-2',
+    src: '/gallery/gallery-penthouse-terrace.jpg',
+    category: 'SUITES',
+    title: 'Royal Penthouse Sky Terrace & Cedar Pergola',
+    subtitle: 'Private rooftop outdoor entertaining deck with open cedar timber pergola and 360° Mukshpuri mountain panorama.',
+    tag: 'Sky Lounge Deck • Level 8.5',
+    featured: true,
+  },
+  {
+    id: 'img-3',
+    src: '/gallery/gallery-balcony-view.jpg',
+    category: 'SUITES',
+    title: 'Cantilevered Suite Balcony & Mountain Vista',
+    subtitle: 'Deep private balcony terrace with black wrought-iron balustrades overlooking snow-clad pine valleys.',
+    tag: 'Executive Suite Terrace',
+    featured: true,
+  },
+  {
+    id: 'img-4',
+    src: '/gallery/gallery-hotel-entrance.jpg',
+    category: 'EXTERIOR',
+    title: 'Grand Porte-Cochère & Schist Podium Arrival',
+    subtitle: 'Natural schist stone retaining walls, brass-trimmed arrival canopy, and classical carriage lanterns.',
+    tag: 'Ground Level Arrival',
+  },
+  {
+    id: 'img-5',
+    src: '/gallery/gallery-elevation-snow.jpg',
+    category: 'EXTERIOR',
+    title: 'Snow-Clad Winter Elevation & Pine Forest',
+    subtitle: 'Frontal architectural elevation surrounded by pristine snow-covered pine slopes of Nathia Gali.',
+    tag: 'Winter Elevation View',
+  },
+  {
+    id: 'img-6',
+    src: '/gallery/gallery-chalet-architecture.jpg',
+    category: 'EXTERIOR',
+    title: 'French Limestone Arch Windows & Multi-Tier Bay',
+    subtitle: 'Continuous central Roman-arched window bay framed with limestone pilasters and decorative keystone headers.',
+    tag: 'Architectural Details',
+  },
+  {
+    id: 'img-7',
+    src: '/gallery/gallery-aerial-forest.jpg',
+    category: 'VIEWS',
+    title: 'Himalayan Forest Canopy & Aerial Panorama',
+    subtitle: 'Breathtaking high-altitude perspective of virgin evergreen pine ridges stretching towards Kashmir peaks.',
+    tag: 'Aerial Ridge Perspective',
+  },
+  {
+    id: 'img-8',
+    src: '/gallery/gallery-pine-ridge-view.jpg',
+    category: 'VIEWS',
+    title: 'Sunlit Pine Ridge & Valley Vista',
+    subtitle: 'Crisp mountain air and endless Himalayan valley views from the north-facing suites.',
+    tag: 'Valley Horizon',
+  },
+  {
+    id: 'img-9',
+    src: '/gallery/gallery-ext-day.jpg',
+    category: 'EXTERIOR',
+    title: 'Daylight Architectural Perspective',
+    subtitle: 'Natural alpine daylight highlighting the warm cream stucco finish, cedar accents, and dark metal mullions.',
+    tag: 'Daylight Architecture',
+  },
+  {
+    id: 'img-10',
+    src: '/gallery/gallery-residence-facade.jpg',
+    category: 'EXTERIOR',
+    title: 'Luxury Serviced Residences Frontage',
+    subtitle: 'Symmetrical facade design ensuring every suite enjoys unhindered front-facing Himalayan sunrise views.',
+    tag: 'Residences Frontage',
+  },
+  {
+    id: 'img-11',
+    src: '/gallery/gallery-suite-interior-view.jpg',
+    category: 'SUITES',
+    title: 'Panoramic Glass Glazing & Living Space',
+    subtitle: 'Floor-to-ceiling double-glazed thermal windows offering immersive alpine views from the comfort of bed.',
+    tag: 'Turnkey Suite Living',
+  },
+  {
+    id: 'img-12',
+    src: '/gallery/gallery-sunset-facade.jpg',
+    category: 'VIEWS',
+    title: 'Sunset Crimson Sky & Alpine Silhouette',
+    subtitle: 'Magical golden-hour alpine glow lighting up the mountain ridgelines behind Serene Heights.',
+    tag: 'Alpine Sunset Hour',
+  },
+  {
+    id: 'img-13',
+    src: '/gallery/gallery-snow-approach.jpg',
+    category: 'VIEWS',
+    title: 'Scenic Winter Snow Road Approach',
+    subtitle: 'Snow-plowed private access drive lined with lit carriage lamps leading up to the hotel arrival court.',
+    tag: 'Private Access Drive',
+  },
+];
 
 export const ProjectGalleryModal: React.FC = () => {
   const isOpen = useTourStore((state) => state.isGalleryModalOpen);
   const setIsOpen = useTourStore((state) => state.setGalleryModalOpen);
-  const setInquiryOpen = useTourStore((state) => state.setInquiryModalOpen);
 
-  const [activeTab, setActiveTab] = useState<'EXTERIOR' | 'BLUEPRINT' | 'FLOORPLAN'>('EXTERIOR');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'ALL' | 'EXTERIOR' | 'VIEWS' | 'SUITES'>('ALL');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Filtered gallery items
+  const filteredItems = useMemo(() => {
+    if (filter === 'ALL') return GALLERY_IMAGES;
+    return GALLERY_IMAGES.filter((img) => img.category === filter);
+  }, [filter]);
+
+  // Navigate lightbox
+  const handlePrev = useCallback(() => {
+    if (lightboxIndex === null) return;
+    setLightboxIndex((prev) => (prev !== null ? (prev - 1 + filteredItems.length) % filteredItems.length : null));
+  }, [lightboxIndex, filteredItems.length]);
+
+  const handleNext = useCallback(() => {
+    if (lightboxIndex === null) return;
+    setLightboxIndex((prev) => (prev !== null ? (prev + 1) % filteredItems.length : null));
+  }, [lightboxIndex, filteredItems.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (lightboxIndex !== null) {
+          setLightboxIndex(null);
+        } else {
+          setIsOpen(false);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        handleNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, lightboxIndex, handlePrev, handleNext, setIsOpen]);
+
+  // WhatsApp booking inquiry with current image context
+  const handleWhatsAppInquiry = (imgTitle?: string) => {
+    const message = encodeURIComponent(
+      `Hello Serene Heights Team, I am viewing the official gallery photo "${
+        imgTitle || 'Serene Heights Architecture'
+      }". I would like more details regarding unit availability, pricing, and site visits.`
+    );
+    window.open(`https://wa.me/923008555777?text=${message}`, '_blank');
+  };
 
   if (!isOpen) return null;
 
-  const galleryData = [
-    {
-      id: 'ext-1',
-      tab: 'EXTERIOR',
-      title: 'South-East Mountain Elevation & Cantilever Balconies',
-      desc: 'Stepped modern alpine architecture facing the Mukshpuri pine ridges with floor-to-ceiling double glazing.',
-      tag: 'Architectural Render • 7,906 FT',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <defs>
-            <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#1e293b" />
-              <stop offset="100%" stopColor="#475569" />
-            </linearGradient>
-            <linearGradient id="bldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0f172a" />
-              <stop offset="100%" stopColor="#1e293b" />
-            </linearGradient>
-          </defs>
-          <rect width="400" height="240" fill="url(#skyGrad)" />
-          {/* Mountain Silhouettes */}
-          <polygon points="0,180 80,110 160,160 260,90 340,150 400,100 400,240 0,240" fill="#1e3a29" />
-          <polygon points="40,240 140,140 220,200 310,130 400,190 400,240 0,240" fill="#13271b" opacity="0.8" />
-          {/* Building Massing */}
-          <rect x="120" y="50" width="160" height="150" fill="url(#bldGrad)" stroke="#d4af37" strokeWidth="1.5" rx="3" />
-          {/* Cantilever Balconies */}
-          {[70, 95, 120, 145, 170].map((y, i) => (
-            <g key={i}>
-              <rect x="105" y={y} width="190" height="16" fill="#3b2210" stroke="#d4af37" strokeWidth="0.8" />
-              <rect x="105" y={y - 8} width="190" height="8" fill="rgba(186, 230, 253, 0.4)" stroke="#bae6fd" strokeWidth="0.5" />
-            </g>
-          ))}
-          {/* Rooftop Pergola */}
-          <rect x="135" y="38" width="130" height="12" fill="none" stroke="#d4af37" strokeWidth="1.5" />
-          <text x="200" y="225" textAnchor="middle" fill="#d4af37" fontSize="10" fontWeight="700">
-            SERENE HEIGHTS - SOUTHEAST ELEVATION (7,906 FT)
-          </text>
-        </svg>
-      ),
-    },
-    {
-      id: 'ext-2',
-      tab: 'EXTERIOR',
-      title: 'Rooftop Sky Dining & Heated Fire Pit Deck',
-      desc: '360° open-air fine dining lounge featuring heated outdoor seating and glass windscreens at 7,906 ft.',
-      tag: 'Sky Lounge Deck • Level 8.5',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <rect width="400" height="240" fill="#0f172a" />
-          {/* Sunset Horizon */}
-          <rect x="0" y="0" width="400" height="140" fill="linear-gradient(to bottom, #1e1b4b, #c2410c)" />
-          {/* Timber Deck */}
-          <rect x="30" y="130" width="340" height="90" fill="#2d1c11" stroke="#d4af37" strokeWidth="1.5" />
-          {/* Fire Pit */}
-          <circle cx="200" cy="175" r="28" fill="#181c20" stroke="#ff7a18" strokeWidth="2" />
-          <circle cx="200" cy="175" r="16" fill="#ff5500" className="animate-pulse" />
-          {/* Glass Railing */}
-          <rect x="30" y="115" width="340" height="16" fill="rgba(147, 197, 253, 0.3)" stroke="#93c5fd" strokeWidth="0.8" />
-          <text x="200" y="215" textAnchor="middle" fill="#fde68a" fontSize="10" fontWeight="700">
-            OPEN-AIR SKY LOUNGE & FIRE PIT
-          </text>
-        </svg>
-      ),
-    },
-    {
-      id: 'blue-1',
-      tab: 'BLUEPRINT',
-      title: 'Seismic Zone 4 Reinforced Concrete Foundation',
-      desc: 'High-strength alpine structural engineering designed specifically for Himalayan geological conditions and frost heave.',
-      tag: 'Engineering Blueprint • Structural CAD',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <rect width="400" height="240" fill="#032541" />
-          <defs>
-            <pattern id="bpGrid" width="15" height="15" patternUnits="userSpaceOnUse">
-              <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#094572" strokeWidth="0.6" />
-            </pattern>
-          </defs>
-          <rect width="400" height="240" fill="url(#bpGrid)" />
-          {/* Structural Lines */}
-          <rect x="50" y="40" width="300" height="150" fill="none" stroke="#60a5fa" strokeWidth="2" />
-          <line x1="50" y1="90" x2="350" y2="90" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="4 2" />
-          <line x1="50" y1="140" x2="350" y2="140" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="4 2" />
-          <line x1="150" y1="40" x2="150" y2="190" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="250" y1="40" x2="250" y2="190" stroke="#60a5fa" strokeWidth="1.5" />
-          {/* Foundation Footings */}
-          {[70, 150, 230, 310].map((x) => (
-            <rect key={x} x={x} y="190" width="30" height="25" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="1.5" />
-          ))}
-          <text x="200" y="30" textAnchor="middle" fill="#93c5fd" fontSize="10" fontWeight="700">
-            SEISMIC ZONE 4 PILE & RAFT FOUNDATION SCHEMATIC
-          </text>
-        </svg>
-      ),
-    },
-    {
-      id: 'blue-2',
-      tab: 'BLUEPRINT',
-      title: 'European Radiant Underfloor Heating & Thermal Envelope',
-      desc: 'Central hot-water radiant loops embedded within floor slabs providing even, draft-free warmth throughout sub-zero winters.',
-      tag: 'HVAC Schematic • Radiant Heating',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <rect width="400" height="240" fill="#1a1c23" />
-          <rect x="40" y="40" width="320" height="150" fill="#0f172a" stroke="#f97316" strokeWidth="2" />
-          {/* Heating coils S-curves */}
-          <path
-            d="M 60 70 Q 200 60 340 70 M 340 95 Q 200 105 60 95 M 60 120 Q 200 110 340 120 M 340 145 Q 200 155 60 145 M 60 170 Q 200 160 340 170"
-            fill="none"
-            stroke="#fb923c"
-            strokeWidth="2"
-          />
-          <text x="200" y="30" textAnchor="middle" fill="#fdba74" fontSize="10" fontWeight="700">
-            RADIANT FLOOR HEATING LOOP DISTRIBUTION PLAN
-          </text>
-        </svg>
-      ),
-    },
-    {
-      id: 'fp-1',
-      tab: 'FLOORPLAN',
-      title: 'Executive Serviced Hotel Suite (550 SQFT)',
-      desc: 'Complete turnkey luxury studio suite with private cantilevered balcony, spa bath, and kitchenette bar.',
-      tag: 'Suite Layout • 550 SQFT',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <rect width="400" height="240" fill="#0a0f18" />
-          <rect x="60" y="30" width="280" height="140" fill="#1e293b" stroke="#d4af37" strokeWidth="2" rx="3" />
-          <rect x="140" y="170" width="200" height="45" fill="#3b2210" stroke="#d4af37" strokeWidth="1.5" strokeDasharray="4 2" />
-          <text x="240" y="196" textAnchor="middle" fill="#d4af37" fontSize="9" fontWeight="600">
-            PRIVATE BALCONY (180° MOUNTAIN VISTA)
-          </text>
-          <rect x="75" y="45" width="90" height="60" fill="#064e3b" stroke="#10b981" strokeWidth="1.5" />
-          <text x="120" y="80" textAnchor="middle" fill="#a7f3d0" fontSize="9" fontWeight="700">
-            KING BED SUITE
-          </text>
-          <rect x="190" y="45" width="130" height="70" fill="#334155" stroke="#64748b" strokeWidth="1.5" />
-          <text x="255" y="85" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="700">
-            LIVING LOUNGE & FIREPLACE
-          </text>
-        </svg>
-      ),
-    },
-    {
-      id: 'fp-2',
-      tab: 'FLOORPLAN',
-      title: '2-Bedroom Luxury Serviced Residence (950 SQFT)',
-      desc: 'Dual-aspect corner residence with wrap-around balcony, two master ensuite bedrooms, and spacious central lounge.',
-      tag: 'Family Suite Layout • 950 SQFT',
-      svg: (
-        <svg viewBox="0 0 400 240" className="w-full h-full">
-          <rect width="400" height="240" fill="#0a0f18" />
-          <rect x="40" y="25" width="320" height="150" fill="#1e293b" stroke="#10b981" strokeWidth="2" rx="3" />
-          <rect x="100" y="175" width="260" height="45" fill="#3b2210" stroke="#d4af37" strokeWidth="1.5" strokeDasharray="4 2" />
-          <text x="230" y="202" textAnchor="middle" fill="#d4af37" fontSize="9" fontWeight="600">
-            EXPANSIVE CORNER BALCONY DECK
-          </text>
-          <rect x="55" y="40" width="80" height="70" fill="#064e3b" stroke="#10b981" strokeWidth="1" />
-          <text x="95" y="78" textAnchor="middle" fill="#a7f3d0" fontSize="8" fontWeight="700">
-            MASTER 1
-          </text>
-          <rect x="265" y="40" width="80" height="70" fill="#064e3b" stroke="#10b981" strokeWidth="1" />
-          <text x="305" y="78" textAnchor="middle" fill="#a7f3d0" fontSize="8" fontWeight="700">
-            MASTER 2
-          </text>
-          <rect x="145" y="40" width="110" height="90" fill="#334155" stroke="#64748b" strokeWidth="1.5" />
-          <text x="200" y="90" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="700">
-            CENTRAL LIVING
-          </text>
-        </svg>
-      ),
-    },
-  ];
-
-  const filteredItems = galleryData.filter((item) => item.tab === activeTab);
+  const currentLightboxItem = lightboxIndex !== null ? filteredItems[lightboxIndex] : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in pointer-events-auto">
-      <div className="relative w-full max-w-4xl rounded-3xl bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-amber-400/35 shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/40 flex items-center justify-center">
-              <Layers className="w-4 h-4 text-amber-300" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold tracking-wider font-cinzel text-amber-100">
-                Official Media Gallery & Master Blueprints
-              </h2>
-              <p className="text-xs text-slate-400">
-                Serene Heights Nathia Gali (7,906 FT) • Fixed Architectural Standards
-              </p>
-            </div>
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-3xl overflow-y-auto animate-fadeIn select-none">
+      {/* ===================================================================== */}
+      {/* 1. TOP STICKY HEADER                                                  */}
+      {/* ===================================================================== */}
+      <div className="sticky top-0 z-40 flex items-center justify-between px-6 sm:px-12 py-5 bg-slate-950/80 backdrop-blur-xl border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-300">
+            <Sparkles className="w-5 h-5 text-amber-400" />
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                Serene Heights Nathia Gali
+              </h2>
+              <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[10px] font-bold">
+                7,906 FT
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Official High-Resolution Photo & Architectural Gallery ({GALLERY_IMAGES.length} Images)
+            </p>
+          </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b border-white/5 bg-black/20">
+        {/* Close Button */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 text-slate-300 hover:text-white transition-all cursor-pointer shadow-lg"
+          title="Close Gallery (Esc)"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 2. FILTER TABS & STATS BAR                                            */}
+      {/* ===================================================================== */}
+      <div className="px-6 sm:px-12 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/5">
+        <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: 'EXTERIOR', label: 'Exterior Views & Site Renders', icon: <ImageIcon className="w-3.5 h-3.5" /> },
-            { id: 'BLUEPRINT', label: 'Architectural & Engineering Blueprints', icon: <Compass className="w-3.5 h-3.5" /> },
-            { id: 'FLOORPLAN', label: 'Suite CAD Floor Plans', icon: <Building className="w-3.5 h-3.5" /> },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'EXTERIOR' | 'BLUEPRINT' | 'FLOORPLAN')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer ${
-                activeTab === tab.id
-                  ? 'bg-amber-400/25 text-amber-200 border border-amber-400/50 shadow-sm'
-                  : 'bg-white/5 text-slate-400 hover:text-white border border-transparent'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+            { key: 'ALL', label: 'All Photos', count: GALLERY_IMAGES.length, icon: Sparkles },
+            {
+              key: 'EXTERIOR',
+              label: 'Exterior Architecture',
+              count: GALLERY_IMAGES.filter((i) => i.category === 'EXTERIOR').length,
+              icon: Building2,
+            },
+            {
+              key: 'VIEWS',
+              label: 'Valley & Forest Views',
+              count: GALLERY_IMAGES.filter((i) => i.category === 'VIEWS').length,
+              icon: Mountain,
+            },
+            {
+              key: 'SUITES',
+              label: 'Suites & Balconies',
+              count: GALLERY_IMAGES.filter((i) => i.category === 'SUITES').length,
+              icon: Home,
+            },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = filter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key as any)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition-all duration-300 cursor-pointer ${
+                  active
+                    ? 'bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 font-bold'
+                    : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 border border-white/10 hover:border-white/20'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${active ? 'text-slate-950' : 'text-amber-300'}`} />
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    active ? 'bg-slate-950/20 text-slate-950' : 'bg-white/10 text-slate-400'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Gallery Grid */}
-        <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredItems.map((item) => (
+        <div className="text-xs text-slate-400 font-medium hidden md:block">
+          Showing <span className="text-white font-bold">{filteredItems.length}</span> official photo assets
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 3. MASONRY / BENTO PHOTO GRID                                         */}
+      {/* ===================================================================== */}
+      <div className="flex-1 p-6 sm:p-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredItems.map((item, idx) => (
             <div
               key={item.id}
-              onClick={() => setSelectedImage(item.id)}
-              className="group p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/50 transition-all duration-300 cursor-pointer flex flex-col space-y-3"
+              onClick={() => setLightboxIndex(idx)}
+              className="group relative rounded-3xl overflow-hidden bg-slate-950/60 border border-white/10 hover:border-amber-400/60 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/10 cursor-pointer flex flex-col justify-between"
             >
-              <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-black/40 border border-white/5">
-                {item.svg}
-                <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="px-3 py-1.5 rounded-full bg-slate-900/90 text-amber-300 text-xs font-semibold flex items-center gap-1.5 border border-amber-400/40">
-                    <ZoomIn className="w-3.5 h-3.5" />
-                    <span>View High-Res Schematic</span>
+              {/* Image Container with Zoom on Hover */}
+              <div className="relative aspect-[16/11] w-full overflow-hidden bg-slate-900">
+                <img
+                  src={item.src}
+                  alt={item.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover object-center transform group-hover:scale-108 transition-transform duration-700 ease-out"
+                />
+
+                {/* Top Badge Tag */}
+                <div className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-slate-950/75 backdrop-blur-md border border-white/15 text-amber-300 text-[10px] font-semibold tracking-wider uppercase">
+                  {item.tag}
+                </div>
+
+                {/* Hover Zoom Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="p-3 rounded-full bg-amber-400 text-slate-950 shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                    <Maximize2 className="w-5 h-5 stroke-[2.5]" />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                  {item.tag}
-                </span>
-                <h3 className="text-sm font-bold text-white font-cinzel mt-0.5">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  {item.desc}
-                </p>
+              {/* Card Meta Content */}
+              <div className="p-5 space-y-2 bg-gradient-to-b from-slate-950/40 to-slate-950/90 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors duration-300 leading-snug">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                    {item.subtitle}
+                  </p>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between text-[11px] text-amber-300/80 font-medium">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    Verified Official Render
+                  </span>
+                  <span className="group-hover:translate-x-1 transition-transform duration-300 text-white">
+                    View Fullscreen →
+                  </span>
+                </div>
               </div>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-white/10 bg-white/5 flex items-center justify-between">
-          <span className="text-xs text-slate-400 flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Official Approved Architectural Drawings (sereneheightsnathiagali.com)</span>
-          </span>
-
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              setInquiryOpen(true);
-            }}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500 transition-all cursor-pointer flex items-center gap-2"
-          >
-            <Building className="w-4 h-4" />
-            <span>Request Full Architectural Dossier</span>
-          </button>
-        </div>
-
-        {/* Single Image Lightbox Popup */}
-        {selectedImage && (
+      {/* ===================================================================== */}
+      {/* 4. FULL-SCREEN LIGHTBOX PREVIEW MODAL                                 */}
+      {/* ===================================================================== */}
+      {currentLightboxItem && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fadeIn"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Top Bar inside Lightbox */}
           <div
-            className="fixed inset-0 z-60 bg-black/90 backdrop-blur-xl flex items-center justify-center p-6"
-            onClick={() => setSelectedImage(null)}
+            className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-70 bg-gradient-to-b from-black/80 to-transparent"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative max-w-4xl w-full p-4 rounded-3xl bg-slate-900 border border-amber-400/40">
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                {lightboxIndex! + 1} / {filteredItems.length}
+              </span>
+              <span className="text-sm text-slate-300 font-medium hidden sm:inline-block">
+                {currentLightboxItem.tag}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center cursor-pointer"
+                onClick={() => handleWhatsAppInquiry(currentLightboxItem.title)}
+                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4" />
+                <span>Inquire About This View</span>
               </button>
-              <div className="w-full aspect-[16/10]">
-                {galleryData.find((d) => d.id === selectedImage)?.svg}
+              <button
+                onClick={() => setLightboxIndex(null)}
+                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Previous Arrow */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            className="absolute left-4 sm:left-8 z-70 p-3.5 rounded-full bg-white/10 hover:bg-amber-400 text-white hover:text-slate-950 transition-all cursor-pointer shadow-2xl backdrop-blur-lg"
+            title="Previous Image (Left Arrow)"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          {/* Main Image Container */}
+          <div
+            className="relative max-w-[90vw] max-h-[80vh] flex flex-col items-center justify-center p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={currentLightboxItem.src}
+              alt={currentLightboxItem.title}
+              className="max-w-full max-h-[72vh] object-contain rounded-2xl shadow-2xl border border-white/15"
+            />
+
+            {/* Bottom Caption & WhatsApp CTA */}
+            <div className="w-full max-w-2xl text-center mt-4 px-4 space-y-1">
+              <h3 className="text-base sm:text-lg font-bold text-white">
+                {currentLightboxItem.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300">
+                {currentLightboxItem.subtitle}
+              </p>
+              <div className="pt-2 sm:hidden">
+                <button
+                  onClick={() => handleWhatsAppInquiry(currentLightboxItem.title)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Inquire via WhatsApp</span>
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Next Arrow */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="absolute right-4 sm:right-8 z-70 p-3.5 rounded-full bg-white/10 hover:bg-amber-400 text-white hover:text-slate-950 transition-all cursor-pointer shadow-2xl backdrop-blur-lg"
+            title="Next Image (Right Arrow)"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
+// Also export as GalleryModal for alternate imports
+export const GalleryModal = ProjectGalleryModal;
+export default ProjectGalleryModal;

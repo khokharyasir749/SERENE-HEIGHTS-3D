@@ -1,10 +1,16 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useTourStore } from '../../store/useTourStore';
 
 export const SnowAtmosphere: React.FC = () => {
-  const count = 350;
+  const weatherMode = useTourStore((state) => state.weatherLightingMode);
+  const isWinter = weatherMode === 'SNOWY_WINTER';
+
+  const count = 400;
   const meshRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<THREE.PointsMaterial>(null);
+  const currentOpacity = useRef(isWinter ? 0.8 : 0.0);
 
   const [positions, velocities] = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -23,8 +29,22 @@ export const SnowAtmosphere: React.FC = () => {
     return [pos, vel];
   }, []);
 
-  useFrame(() => {
-    if (!meshRef.current) return;
+  useFrame((_, delta) => {
+    // Smoothly fade snowfall opacity in/out
+    const targetOpacity = isWinter ? 0.8 : 0.0;
+    currentOpacity.current = THREE.MathUtils.lerp(
+      currentOpacity.current,
+      targetOpacity,
+      Math.min(delta * 5.0, 0.25)
+    );
+
+    if (materialRef.current) {
+      materialRef.current.opacity = currentOpacity.current;
+      materialRef.current.visible = currentOpacity.current > 0.01;
+    }
+
+    if (!meshRef.current || currentOpacity.current <= 0.01) return;
+
     const posAttr = meshRef.current.geometry.attributes.position as THREE.BufferAttribute;
     const array = posAttr.array as Float32Array;
 
@@ -52,10 +72,11 @@ export const SnowAtmosphere: React.FC = () => {
         />
       </bufferGeometry>
       <pointsMaterial
+        ref={materialRef}
         size={0.18}
         color="#ffffff"
         transparent
-        opacity={0.75}
+        opacity={isWinter ? 0.8 : 0.0}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />

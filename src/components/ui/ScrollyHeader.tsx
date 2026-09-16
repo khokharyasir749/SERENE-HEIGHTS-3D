@@ -61,43 +61,52 @@ export const ScrollyHeader: React.FC = () => {
       {/* Quick Action Buttons */}
       <div className="flex items-center gap-2.5">
         {/* Weather Presets */}
-        <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-slate-900/80 border border-white/10">
-          <button
-            onClick={() => setWeatherMode('MORNING_MIST')}
-            title="Morning Mist"
-            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-              weatherMode === 'MORNING_MIST' ? 'bg-amber-400 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <CloudSun className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900/80 border border-white/10">
           <button
             onClick={() => setWeatherMode('GOLDEN_HOUR')}
-            title="Golden Sunset"
-            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-              weatherMode === 'GOLDEN_HOUR' ? 'bg-amber-400 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+            title="Golden Sunset / Twilight"
+            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              weatherMode === 'GOLDEN_HOUR'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Sun className="w-4 h-4" />
+            <span className="hidden xl:inline text-[11px]">Sunset</span>
+          </button>
+          <button
+            onClick={() => setWeatherMode('MORNING_MIST')}
+            title="Sunny Daylight Vista"
+            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              weatherMode === 'MORNING_MIST'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <CloudSun className="w-4 h-4" />
+            <span className="hidden xl:inline text-[11px]">Daylight</span>
           </button>
           <button
             onClick={() => setWeatherMode('SNOWY_WINTER')}
-            title="Snowy Winter"
-            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-              weatherMode === 'SNOWY_WINTER' ? 'bg-amber-400 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+            title="Snowy Winter & Falling Snow"
+            className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+              weatherMode === 'SNOWY_WINTER'
+                ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Snowflake className="w-4 h-4" />
+            <span className="hidden xl:inline text-[11px]">Winter</span>
           </button>
         </div>
 
         {/* Gallery Modal Trigger */}
         <button
           onClick={() => setGalleryModalOpen(true)}
-          className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-xs font-semibold text-slate-200 transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 hover:border-amber-400/40 text-xs font-semibold text-slate-200 transition-all cursor-pointer"
         >
           <Images className="w-3.5 h-3.5 text-amber-300" />
-          <span>Gallery</span>
+          <span className="hidden sm:inline">Gallery</span>
         </button>
 
         {/* Payment Plan Drawer Trigger */}
